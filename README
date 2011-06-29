@@ -1,0 +1,37 @@
+ruby script to combine .js files, similar to the 'compass watch' command
+
+use as follows:
+
+1) In your webapp create a /js directory, leave it blank
+2) Create a /js-build (or other named) directory
+3) Only use the /js-build directory for javascript files during development
+4) to refer to a dependency in a javascript file use:
+   4.1) //=require "one"
+   	this refers to /js-build/one.js
+   4.2) //=require "dir/_one"
+   	this refers to /js-build/dir/_one.js
+5) the contens of the referenced files will be added in order
+6) running the command
+   > ruby jsConcatenator -w
+   from within the /js-build directory, where the script should reside
+   will start looking for changes, to this directory
+7) the script will mirror the directory structure found in /js-build in /js, 
+   ignoring files beginning with an _ (underscore)
+
+
+example:
+
+project/
+	js-build/
+		_one.js
+		_two.js
+		nested/
+			_three.js
+		main.js // contains references to all three
+	js/
+		main.js // contains all file references
+
+TODO
+	need to reimplement minification
+	catch problems using the same name twice
+	decide on approach to infinite loops since doesn't ensure a DAG
