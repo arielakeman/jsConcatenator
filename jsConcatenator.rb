@@ -1,3 +1,4 @@
+
 # CONFIG
 
 MIRROR_DIR = "../js"
@@ -96,20 +97,18 @@ end
 # also need to do the initial loop through all files and create all items
 
 def initiateFullUpdate
-  begin
-    curDir = Dir.getwd()
-    all = Dir['**/*.js']
-  
-    all.each {|jsFile|
-      outFile = substituteContents(curDir, jsFile)
-      # then either create or update the mirror if doesn't have an underscore
-      fileName = jsFile.match(/[^|\/][\w]+\.js/)[0]
+  curDir = Dir.getwd()
+	all = Dir['**/*.js']
 
-      if fileName[0,1] != "_"
-        createMirror(curDir, jsFile, outFile)
-      end
-    }
-  end
+	all.each {|jsFile|
+	  outFile = substituteContents(curDir, jsFile)
+	  # then either create or update the mirror if doesn't have an underscore
+	  fileName = jsFile.match(/[^|\/][\w]+\.js/)[0]
+
+	  if fileName[0,1] != "_"
+		createMirror(curDir, jsFile, outFile)
+	  end
+	}
 end
 
 # creates the mirror file, e.g. js-build/main.js -> js/main.js
@@ -136,11 +135,14 @@ def createMirror(base, relative, newFileContent)
   }
 end
 
+def log()
+  puts "polling for *.js changes"
+end
+
 def monitor()
-  def log()
-    puts "polling for *.js changes"
-  end
   log()
+
+  begin
 
   FSSM::Monitor.new(:directories => true)
   FSSM.monitor('.', '**/*.js', :directories => true) do
@@ -163,6 +165,10 @@ def monitor()
       File.delete(base + "/" + MIRROR_DIR + "/" + relative)
       log()
     }
+  end
+  
+  rescue
+    monitor()
   end
 end
 
