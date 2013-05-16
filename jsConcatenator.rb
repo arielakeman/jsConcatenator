@@ -2,6 +2,7 @@
 # CONFIG
 
 MIRROR_DIR = "../js"
+CLOSURE_COMPILER_JAR_NAME = "closure-compiler.jar"
 
 # regex to find the type of import statement used to refer to other files
 # here it is //=require "dir/file"
@@ -9,37 +10,45 @@ MIRROR_DIR = "../js"
 IMPORTRE = /^\/\/=require\s?"[\w_\/]+"\n/
 IMPORTREFILE = /^\/\/=require\s?"([\w_\/]+)"\n/
 
+DO_MIN = false
+MIN_ALL = false
+DO_WATCH = false
+
+ARGV.each do|a|
+  case a
+    when '-m'
+      DO_MIN = true
+    when '-ma'
+      MIN_ALL = true
+    when '-w'
+      DO_WATCH = true
+  end
+end
 
 # END OF CONFIG
 
 require 'rubygems'
 require 'FSSM'
 
-DO_MIN = ARGV[0] == "-m" or ARGV[1] == "-m"
-DO_WATCH = ARGV[0] == "-w" or ARGV[1] = "-w"
-
 # prepends needed files, e.g. jQuery.min.js or other files needed
 # this happens after minification i.e. won't reminify these files
-# TODO do this
+# TODO: implement
 def prependFiles(file, fileList)
 
 end
 
-# TODO
-def minify(file)
-  # this can be modified for greater compression
-  #java -jar /bin/compiler.jar --js example.js --js_output_file example-compiled.js
-
-  # use "--compilation_level ADVANCED_OPTIMIZATIONS" if want to maximise minificationn
-  system("java -jar /bin/compiler.jar --js " + OUT_FILE + " --js_output_file " + OUT_FILE.sub(".js", ".min.js"))
-end
-
-# TODO
+# TODO: implement
 def gzip(file)
 
 end
 
-# first run through the script it checks every file
+def minify(base, file, new_file)
+  puts "minifying " + file
+
+  system("java -jar " + base + "/" + CLOSURE_COMPILER_JAR_NAME + " --js " +
+         file + " --js_output_file " +
+         new_file + " --jscomp_off=internetExplorerChecks")
+end
 
 def _sanitiseDir(dir)
  return dir.gsub(/[\/]{3}|[\/]{2}/, "/")
@@ -98,20 +107,20 @@ end
 
 def initiateFullUpdate
   curDir = Dir.getwd()
-	all = Dir['**/*.js']
+  all = Dir['**/*.js']
 
-	all.each {|jsFile|
-	  outFile = substituteContents(curDir, jsFile)
-	  # then either create or update the mirror if doesn't have an underscore
-	  fileName = jsFile.match(/[^|\/][\w]+\.js/)[0]
+  all.each {|jsFile|
+    outFile = substituteContents(curDir, jsFile)
+    # then either create or update the mirror if doesn't have an underscore
+    fileName = jsFile.match(/[^|\/][\w]+\.js/)[0]
 
-	  if fileName[0,1] != "_"
-		createMirror(curDir, jsFile, outFile)
-	  end
-	}
+    if fileName[0,1] != "_"
+      createMirror(curDir, jsFile, outFile)
+    end
+  }
 end
 
-# creates the mirror file, e.g. js-build/main.js -> js/main.js
+# creates the mirror file, e.g. current-dir/main.js -> js/main.js
 def createMirror(base, relative, newFileContent)
   newDir = _sanitiseDir("/" + relative)
   splitted = newDir.split("/")
@@ -130,9 +139,19 @@ def createMirror(base, relative, newFileContent)
       if !File.exist?(cur)
         Dir.mkdir(cur)
       end
-      cur += "/"
     end
+
+    min_file = !!cur.match('.do-min.js')
+    min_file_name = cur.sub(".do-min.js", ".js")
+    if (DO_MIN and min_file) or MIN_ALL
+      minify(base, cur, min_file_name)
+    elsif isFile and min_file
+      File.open(min_file_name, 'w') {|f| f.write(newFileContent) }      
+    end
+
+    cur += "/"
   }
+
 end
 
 def log()
